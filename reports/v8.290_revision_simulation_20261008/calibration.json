@@ -1,0 +1,20 @@
+{
+  "known_closed_positions": 1128,
+  "actual_closed_net": 8028.97,
+  "calibrated_closed_net": 8028.97,
+  "max_per_position_pnl_error": 0.0,
+  "opening_quote_fit_positions": 1129,
+  "max_entry_quote_error": 0.0,
+  "point_and_tick": 0.01,
+  "contract_multiplier": 100.0,
+  "lot": 0.03,
+  "opening_fee_per_lot": 7.0,
+  "closing_fee_observed": 0.0,
+  "swap_long_per_lot": -69.25,
+  "swap_short_per_lot": 17.1,
+  "triple_swap_previous_weekday": "Wednesday",
+  "actual_closed_positions_swap_total": -83.27,
+  "CSV_original_version": "8.282",
+  "actual_SL_pct": 0.35,
+  "actual_MAX_ADD": 5
+}

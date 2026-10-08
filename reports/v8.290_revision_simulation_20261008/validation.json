@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "scenarios": 49,
+  "checks": [
+    "one-bar candidate PRE exactly reproduces current core",
+    "current model reproduces prior no-ADD and ADD5 results exactly",
+    "stress time-exit control reproduces prior stressed model exactly",
+    "all scenarios pass accounting, execution time, capacity and final equity invariants",
+    "12 signal/owner prefix replay tests pass across six output arrays",
+    "LONG/SHORT risk-budget rejection leaves cash and positions unchanged; protected SL never widens in all scenarios"
+  ]
+}
