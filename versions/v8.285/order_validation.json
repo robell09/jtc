@@ -1,0 +1,10 @@
+{
+  "order_router_scenarios": 32,
+  "result": "PASS",
+  "actual_MQL_router_body_executed_in_Cpp_mock_harness": true,
+  "legacy_tick_order_paths_excluded_in_turn_mode": true,
+  "exit_callback_runs_after_cycle_reset": true,
+  "historical_warmup_turn_pulse_cleared": true,
+  "whole_MT5_compile": "NOT_RUN",
+  "MT5_strategy_tester": "NOT_RUN"
+}

@@ -1,0 +1,37 @@
+{
+  "csv_bars_checked": 14639,
+  "emitted_signal_count": 74,
+  "python_vs_actual_core_full_sequence_match": true,
+  "forming_and_future_bars_mutation_check": true,
+  "shift0_gap_missing_volume_invalid_parameters_and_cooldown_checks": "passed",
+  "synthetic_long_short_and_divergence_toggle": "passed",
+  "csv_added_fields": [
+    "turn_pre_enabled",
+    "turn_pre_data_valid",
+    "turn_pre_signal",
+    "turn_pre_side",
+    "turn_pre_confirm_bar",
+    "turn_pre_available_time",
+    "turn_pre_pivot_time",
+    "turn_pre_pivot_price",
+    "turn_pre_score",
+    "turn_pre_distance_r",
+    "turn_pre_long_divergence_r",
+    "turn_pre_short_divergence_r",
+    "turn_pre_opposite",
+    "turn_pre_reason",
+    "turn_pre_require_divergence",
+    "turn_pre_atr14"
+  ],
+  "expected_csv_columns": 628,
+  "trading_modules_unchanged_vs_8_283": [
+    "EntryEngine.mqh",
+    "ExitEngine.mqh",
+    "RiskEngine.mqh",
+    "TradeExecutionEngine.mqh",
+    "SignalEngine.mqh",
+    "M3SegmentEngine.mqh"
+  ],
+  "whole_MT5_compile": "NOT_RUN",
+  "MT5_backtest": "NOT_RUN"
+}

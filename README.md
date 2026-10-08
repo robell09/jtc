@@ -1,4 +1,4 @@
-# JTC v8.284 — M3 저점·고점 사전신호 구현
+# JTC v8.285 — M3 저점·고점 사전신호 주문 버전
 
 이 패키지는 **차트 확인용 단독 인디케이터**와 **동일 계산 코어를 사용하는 EA 통합 소스**를 포함합니다. 원본 MACD·Delta 지표 소스도 포함했습니다. EX5는 포함하지 않았고, MT5 전체 컴파일·백테스트는 이 환경에서 실행하지 못했습니다.
 
@@ -9,9 +9,11 @@
    - `MQL5/Indicators/Market/Joon_MACD_v2_05_OPT_VALIDATION.mq5`
    - `MQL5/Indicators/Market/Joon_delta_volume_v1_01_OPT_VALIDATION.mq5`
 3. **차트 신호만 확인할 때:** `MQL5/Indicators/JTC_TurnPre/JTC_M3_TurnPre_v8_284.mq5`를 컴파일하고 GOLD 3분봉 차트에 적용합니다. 자동매매 권한 없이 사용할 수 있습니다.
-4. **EA CSV까지 확인할 때:** `MQL5/Experts/Joon_Trade_Compass_v8_284_TurnPre/Joon_Trade_Compass_v8_284.mq5`를 컴파일하고 기존 설정과 동일 조건으로 테스트합니다.
+4. **EA CSV까지 확인할 때:** `MQL5/Experts/Joon_Trade_Compass_v8_285_TurnOrders/Joon_Trade_Compass_v8_285.mq5`를 컴파일하고 기존 설정과 동일 조건으로 테스트합니다.
 5. 단독 지표와 EA를 동시에 적용하면 같은 신호가 겹쳐 보일 수 있습니다. 먼저 하나씩 확인하세요. 독립 지표는 기본 최근 3,000봉, EA의 warmup 차트 표시는 기본 2,000봉 범위이므로 최초 역사 경계의 cooldown 상태 차이는 고려하세요.
-6. EA의 `InpReviewBlockAddOnQualifiedOpposite`는 이전 v8.283 실험 옵션입니다. **false로 유지**해야 이번 사전신호만 비교할 수 있습니다. 새 TURN PRE는 기존 주문 신호를 대체하지 않습니다.
+6. 새 주문 모드의 기본값은 `InpTurnTradeEnabled=true`, `InpTurnReverseOnOpposite=true`입니다. 전략테스터 Period를 M3로 선택하세요. `InpTesterAutoStart=true`이면 테스터에서 AUTO가 시작됩니다. 실시간 차트에서는 AUTO 스위치를 직접 켜야 합니다. 추가진입 설정을 높여도 새 모드에서는 ADD하지 않습니다.
+7. 새 모드는 이전 WATCH/ACCEL·DIRECTION·구조 ADD·기존 전략 청산 경로를 실행하지 않습니다. 손절은 기존 메뉴의 퍼센트 SL을 사용하고 TP는 설정하지 않습니다. 포지션은 반대 TURN PRE 또는 broker SL/수동·안전 청산까지 유지합니다. 기존 Peak80 수익잠금도 새 모드에서는 실행하지 않습니다.
+8. `InpTurnTradeEnabled=false`이면 v8.284의 기존 주문 경로로 돌아갑니다. 이 경우 TURN PRE는 다시 표시·기록용입니다. 단독 `JTC_M3_TurnPre_v8_284.mq5`는 같은 계산 코어를 사용하며 주문하지 않습니다.
 
 ## 차트 읽는 법과 확정 시점
 
@@ -47,7 +49,9 @@ MACD zero-cross를 기다리지 않습니다. 가격 극점 부근에서 힘의 
 
 ## 설정
 
-- `InpTurnPreEnabled=true` (EA): 새 차트/CSV 계산.
+- `InpTurnTradeEnabled=true`: TURN PRE 전용 주문 모드.
+- `InpTurnReverseOnOpposite=true`: 반대 신호 청산 후 체결 확인 시 반대 진입. false이면 반대 신호로 청산만 합니다.
+- `InpTurnPreEnabled=true` (EA): 새 차트/CSV/주문 공통 계산. 새 주문 모드에서 false는 초기화 오류입니다.
 - `InpTurnRequireDivergence=true`: 기본 선별형. false이면 가격+현재 MACD/Final Wave/Delta 확인만 사용하므로 신호가 늘어납니다.
 - `InpTurnLeftBars=6` (2~12): 극점 비교 범위.
 - `InpTurnMinReboundATR=0.15`, `InpTurnMaxDistanceATR=1.25`: 극점 대비 현재 거리.
@@ -59,11 +63,11 @@ MACD zero-cross를 기다리지 않습니다. 가격 극점 부근에서 힘의 
 
 ## CSV 및 검증
 
-EA CSV version은 `8.284-TURNPRE-INTEGRATED`, **628컬럼**입니다. 새 TURN PRE 관련 16개 필드:
+EA CSV version은 `8.285-TURNPRE-ORDERS`, **628컬럼**입니다. 새 TURN PRE 관련 16개 필드:
 
 `turn_pre_enabled`, `turn_pre_data_valid`, `turn_pre_signal`, `turn_pre_side`, `turn_pre_confirm_bar`, `turn_pre_available_time`, `turn_pre_pivot_time`, `turn_pre_pivot_price`, `turn_pre_score`, `turn_pre_distance_r`, `turn_pre_long_divergence_r`, `turn_pre_short_divergence_r`, `turn_pre_opposite`, `turn_pre_reason`, `turn_pre_require_divergence`, `turn_pre_atr14`.
 
-`turn_pre_available_time`은 확인 봉의 이론상 종료시각입니다. 실제 계산·체결은 다음 tick에서 더 늦을 수 있습니다. `turn_pre_opposite`는 계산 직전 확정된 기존 ASSIST 방향의 반대인지 보여줍니다. 거래 실행 권한이 아닙니다. 한 확정봉의 snapshot이 여러 이벤트 행에 반복되므로 **confirm_bar+side로 중복 제거**해야 합니다.
+`turn_pre_available_time`은 확인 봉의 이론상 종료시각입니다. 실제 계산·체결은 다음 tick에서 더 늦을 수 있습니다. `turn_pre_opposite`는 계산 직전 확정된 기존 ASSIST 방향의 반대인지 보여줍니다. 이 필드는 표시용이며 주문 반대 여부는 실제 EA 소유 포지션 방향과 비교합니다. 한 확정봉의 snapshot이 여러 이벤트 행에 반복되므로 **confirm_bar+side로 중복 제거**해야 합니다.
 
 제공 CSV의 14,639봉에서 기본 조건은 LONG 43, SHORT 31, 총 74개를 만들었습니다. 유효한 5봉 후 방향 평가 72개 중 42개가 같은 방향(58.3%)이었고 평균 +0.3456 ATR이었습니다. ±1ATR first-touch 5봉 평가에서는 target 31/stop 26/timeout 15였습니다. 5봉 동안 pivot 가격이 유지된 것은 72개 중 43개였습니다. 즉 이미 확정된 작은 극점이 이후 더 큰 추세에서 다시 깨질 수 있습니다.
 
@@ -73,12 +77,27 @@ EA CSV version은 `8.284-TURNPRE-INTEGRATED`, **628컬럼**입니다. 새 TURN P
 
 새 MQL 코어·배열 adapter의 실제 함수 본문을 C++ 호환 harness로 실행해 전체 신호 시퀀스와 Python 분석의 일치를 확인했습니다. 0번 봉 금지, 미래값 변경, gap/invalid/zero-volume, 방향 대칭, 다이버전스 옵션과 cooldown 경계도 검사했습니다. **이 검증은 전체 MQL5 컴파일·MT5 버퍼 업데이트·차트 실행 검증을 대체하지 않습니다.** MetaEditor 오류가 있으면 전체 로그를 제공해 주세요.
 
-## 거래 로직 및 남은 한계
+## 새 주문 로직 및 남은 한계
 
-새 TURN PRE는 차트와 CSV에 구현한 별도 신호입니다. 기존 WATCH/ACCEL·INITIAL/ADD/EXIT·SL를 이 신호로 대체하지 않았습니다. 지표와 원래 주문 모듈 간 호환성을 먼저 확인할 수 있게 했습니다. 새 사전신호에 자동 진입/반대 청산 권한을 부여하려면 실제 체결을 포함하는 별도의 변경·검증이 필요합니다.
+- 무포지션 + LONG 사전신호: 시장가 BUY. SHORT: 시장가 SELL.
+- 같은 방향 포지션 보유: 유지, 추가진입 없음.
+- 반대 방향 보유: 이 심볼+Magic의 기존 포지션을 청산. 다른 EA/수동 포지션은 청산하지 않습니다.
+- 반대 진입: 모든 기존 포지션 식별자의 최종 청산 거래가 OnTradeTransaction에서 처리되고 기존 cycle 원장이 정리된 후, **다음 틱**에 딱 한 번 시도합니다. 부분 청산, 청산 실패, 체결 콜백 미확인은 반대 진입을 허용하지 않습니다.
+- LONG ONLY/SHORT ONLY는 신규 진입에 적용합니다. 반대 신호의 기존 포지션 청산은 허용하되 금지 방향의 재진입은 하지 않습니다.
+- 현재 진행봉이 바뀌면 대기 반대 진입은 만료됩니다. AUTO/SYSTEM OFF에서도 대기를 취소합니다. OFF 때 관측한 신호를 나중에 ON으로 바꿔 재사용하지 않습니다.
+- 신규 주문 직전 Ask/Bid와 pivot의 거리가 기존 0.15~1.25 ATR 범위를 벗어나면 주문을 차단합니다. 차트 신호가 있어도 스프레드·슬리피지·지연·거래 권한·손절 설치 가능성 때문에 주문하지 않을 수 있습니다.
+- 주문 실패는 같은 신호로 재시도하지 않습니다. 청산 실패 시 남은 포지션에는 broker SL이 유지되며 다음 새 반대 신호/수동 청산을 기다립니다.
+- 기존 lot, 최대 lot, 스프레드, 거래 권한, 매매 가능 방향, 손절 설치 안전 검사를 유지했습니다. 기존 전략의 신호 품질 조건을 TURN 주문에 다시 적용하지 않습니다.
+- 최초 부착의 과거 replay는 주문하지 않습니다. v8.285에서 M3+ASSIST warmup의 TURN pulse도 명시적으로 지웠습니다.
 
-v8.283의 shadow 나이/8봉 만료 수정은 포함됩니다. 이전에 발견한 다중 청산 cycle 원장 문제는 이번 패키지에서도 미수정이며, broker position-history 합계로 성과를 맞춰야 합니다. 기존 CSV의 마지막 청산 미확정도 해결된 것으로 주장하지 않습니다.
+CSV 628컬럼을 유지하며 `order_signal_source=TURN_PRE`와 `TURN-확인봉시각-L/S` 이벤트 ID, `TURN_ORDER` audit, `TURN PRE INITIAL/OPPOSITE EXIT` 사유로 신규 주문을 식별합니다. 기존 WATCH/ACCEL 상태 필드는 진단 정보이며 새 모드의 주문 근거가 아닙니다. 테스터 결과는 실제 체결된 ENTRY/CLOSE/SL 및 broker position PnL로 평가하세요.
+
+기존 74개 사전신호의 58.3% 방향 일치율은 **v8.285 거래 승률이나 수익이 아닙니다**. 이 버전의 SL·반대 청산·시장가 비용을 포함한 성과는 MT5 전략테스터에서 새로 측정해야 합니다. 앞으로 발생할 극점은 알 수 없으므로 저점/고점 봉 당시 진입하지 않습니다.
+
+청산 콜백 전에 새 cycle을 만들지 않도록 새 반대 진입 경로를 분리했지만, 이전부터 발견한 다중 청산 cycle 집계 문제 전체를 수정한 버전은 아닙니다. broker position-history 합계로 성과를 맞춰야 합니다. 기존 CSV 마지막 청산 기록 불일치도 원본 데이터의 한계로 남아 있습니다.
+
+32개 주문 시나리오에서 실제 MQL 주문 router 본문을 C++ 모의 터미널로 실행해 양방향 진입·중복 방지·추가진입 금지·청산 확인 대기·다중 포지션 확인·부분/실패 청산·OFF/만료·방향 제한·가격 이탈·기존 lifecycle 대기를 검사했습니다. broker 실행, 전체 MQL5 타입 검사와 MT5 전략테스터 실행을 대체하지 않습니다. **EX5 없음 / 전체 MT5 컴파일·백테스트 미실행**입니다.
 
 ## 재현 자료
 
-`analysis/`에 원본 CSV에서 추출한 필요한 10개 컬럼의 14,639봉, 신호 목록, 비교 통계와 차트 예제를 포함했습니다. 전체 원본 214MB CSV는 중복 포함하지 않았습니다. Python/pandas/numpy와 C++17 g++ 환경에서 `tests/validate.py`를 실행하면 동일 코어를 재검사할 수 있습니다. 연구 코드 실행 순서와 환경은 `analysis/REPRODUCE.md`를 참고하세요.
+`analysis/`에 원본 CSV에서 추출한 필요한 10개 컬럼의 14,639봉, 신호 목록, 비교 통계와 차트 예제를 포함했습니다. 전체 원본 214MB CSV는 중복 포함하지 않았습니다. Python/pandas/numpy와 C++17 g++ 환경에서 `tests/validate.py`를 실행하면 동일 코어를 재검사하고 `tests/validate_orders.py`로 새 주문 router를 재검사할 수 있습니다. 연구 코드 실행 순서와 환경은 `analysis/REPRODUCE.md`를 참고하세요.
