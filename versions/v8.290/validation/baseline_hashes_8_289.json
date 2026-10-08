@@ -1,0 +1,8 @@
+{
+  "EntryEngine.mqh": "41268c03c30a95403c3099b4ab6f529266eb8f945bff852c7054c7b24cf9b0a4",
+  "ExitEngine.mqh": "f35a751ad2b13410c66bcf03a5f018b0037365885cf27f0576d577f2497f8639",
+  "RiskEngine.mqh": "fd2ee24d3baf4be81235159b8956e4dd6348ccaf257be5de644f934ba98f0a86",
+  "TradeExecutionEngine.mqh": "9ec3ba3bfa80110730f08df4a9a6ed1d25abcb2d26604798dd0ae1829daf5a3b",
+  "SignalEngine.mqh": "933bc01398881bebb97c2c099279bde73fd7759188a389104d957ca44b189ec4",
+  "M3SegmentEngine.mqh": "48f49b40ec28ba849b8909abc17f42734043a82ac7e0237c80a6053eb1c3c6d6"
+}

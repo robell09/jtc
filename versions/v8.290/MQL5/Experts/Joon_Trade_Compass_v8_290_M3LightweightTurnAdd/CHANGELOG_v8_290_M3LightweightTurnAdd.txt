@@ -1,0 +1,3 @@
+v8.290: based on the user-uploaded v8.289 lightweight CSV parity source.
+Added exclusive closed-M3 TURN PRE INITIAL/EXIT and PRE/DIRECTION ADD orders, cached direction calculation, broker-close callback reversal gate, 22 CSV fields (632 total), versioned v8.290 filenames, and retained legacy lightweight comparison mode.
+Whole MT5 compilation/backtest/performance benchmark NOT RUN.

@@ -1,0 +1,340 @@
+--- v8.289/StateEvaluationEngine.mqh
++++ v8.290/StateEvaluationEngine.mqh
+@@ -206,6 +206,8 @@
+ void StateEvaluationReset()
+ {
+    ZeroMemory(g_assist_state);
++   JTC_TurnEngineReset();
++   JTC_TurnDirectionResetState(g_turn_direction_state);
+    g_assist_state.state=JTA_ASSIST_NEUTRAL;
+    g_assist_state.previous_state=JTA_ASSIST_NEUTRAL;
+    g_assist_state.timeframe=StateEvaluationTimeframe();
+@@ -678,6 +680,9 @@
+    const datetime closed_bar=rates[1].time;
+    if(closed_bar<=0 || closed_bar==g_assist_state.bar_time)
+       return closed_bar>0;
++
++   JTC_TurnProcess(rates,raw_macd,macd_wave,raw_delta,ema_delta,source_volume,historical_replay,closed_shift);
++   JTC_TurnDirectionProcess(rates,macd_base,historical_replay);
+ 
+    // v8.263 observation-only market-regime snapshot.
+    double chop_8=0.0,chop_14=0.0,chop_21=0.0;
+@@ -2100,6 +2105,8 @@
+       if(StateEvaluationUpdateAtClosedShift(shift,true)) replayed++;
+    g_assist_history_replay=false;
+ 
++   g_assist_state.turn_pre_signal=false;g_assist_state.turn_pre_side=0;
++   g_assist_state.turn_direction_signal=false;g_assist_state.turn_direction_side=0;
+    g_assist_state.watch_pulse=false;
+    g_assist_state.early_opposite_watch_pulse=false;
+    g_assist_state.trend_reassertion_target_recovered_pulse=false;
+--- v8.289/PositionManager.mqh
++++ v8.290/PositionManager.mqh
+@@ -426,7 +426,8 @@
+    // router. Legacy signal-close execution filters must not re-veto that
+    // order path. Broker/terminal safety, spread, SL feasibility and trade
+    // retcode checks remain authoritative.
+-   const bool m3_auto_entry = StringFind(reason, "M3 AUTO") >= 0;
++   const bool turn_pre_entry = StringFind(reason, "TURN PRE INITIAL") >= 0;
++   const bool m3_auto_entry = StringFind(reason, "M3 AUTO") >= 0 || turn_pre_entry;
+    const bool bypass_duplicate_strategy_filters =
+       m3_auto_entry || short_term_entry || g_entry_strategy_preapproved ||
+       (((range_three_signal_entry || trend_three_signal_entry) &&
+@@ -1198,6 +1199,7 @@
+                             const int entry_stage,
+                             const string setup_reason)
+ {
++   const bool turn_add = InpTurnTradeEnabled && StringFind(setup_reason,"TURN ADD")>=0;
+    // Legacy Trigger-origin INITIAL restriction does not apply to the new
+    // signal-driven M3 AUTO path. M3AutoEngine has already authorized this ADD
+    // from a same-direction ACCEL event. Keep the restriction for legacy paths.
+@@ -1317,7 +1319,7 @@
+    // RANGE: the caller supplies an already-validated shared-structure
+    // continuation re-break, so do not duplicate structure, MACD/Delta/MA or
+    // timeframe direction checks here. TREND keeps its safeguards.
+-   if(g_position_strategy == STRATEGY_TREND)
++   if(g_position_strategy == STRATEGY_TREND && !turn_add)
+    {
+       if(CurrentProgressR(side) <
+          MathMax(0.0, InpMinimumAdditionalProgressR))
+--- v8.289/M3AutoEngine.mqh
++++ v8.290/M3AutoEngine.mqh
+@@ -984,6 +984,8 @@
+    g_assist_history_replay=false;
+ 
+    // Consume all historical transient events.  Persistent state/ownership stays.
++   g_assist_state.turn_pre_signal=false;g_assist_state.turn_pre_side=0;
++   g_assist_state.turn_direction_signal=false;g_assist_state.turn_direction_side=0;
+    g_assist_state.watch_pulse=false;
+    g_assist_state.watch_informational_repeat=false;
+    g_assist_state.watch_rearm_pulse=false;
+--- v8.289/Runtime.mqh
++++ v8.290/Runtime.mqh
+@@ -752,6 +752,18 @@
+ 
+ int OnInit()
+ {
++   JTC_TurnClearChart();
++   JTC_TurnOrderReset();
++   if(InpTurnTradeEnabled && (!InpTurnPreEnabled ||
++      ((bool)MQLInfoInteger(MQL_TESTER) ? _Period : InpSignalTF)!=PERIOD_M3))
++   {Print("TURN order mode requires M3 and InpTurnPreEnabled=true");return INIT_PARAMETERS_INCORRECT;}
++   if(InpTurnLeftBars<2 || InpTurnLeftBars>12 ||
++      InpTurnMinReboundATR<0.0 || InpTurnMaxDistanceATR<InpTurnMinReboundATR ||
++      InpTurnMomentumDeadzoneATR<0.0 || InpTurnSameSideCooldownBars<1 ||
++      InpTurnSameSideCooldownBars>100 || InpTurnChartHistoryBars<1 || InpTurnChartHistoryBars>20000)
++   {Print("v8.290 TURN PRE: invalid input parameters");return INIT_PARAMETERS_INCORRECT;}
++
++
+    g_startup_rebuild_ready=false;
+    g_startup_rebuild_reconcile_pending=false;
+    g_startup_rebuild_in_progress=false;
+@@ -1311,6 +1323,7 @@
+ //+------------------------------------------------------------------+
+ void OnDeinit(const int reason)
+ {
++   JTC_TurnClearChart();
+    // A duplicate chart never initialized trading/UI resources and must not
+    // execute normal session-end logic, because that could affect positions
+    // managed by the original chart.
+@@ -2092,6 +2105,8 @@
+       WriteUnifiedOrderSignalAudit("CYCLE_RESET",g_exit_source_event_id,"LIFECYCLE",g_trade_cycle.side,0,0,"RESET","POSITION_FULLY_CLOSED",false,false,0,closed_position_id);
+       TradeCycleClear("POSITION_FULLY_CLOSED");
+    }
++   if(InpTurnTradeEnabled)
++      JTC_TurnOrderOnExitDeal((ulong)HistoryDealGetInteger(transaction.deal,DEAL_POSITION_ID));
+ }
+ 
+ // v8.245: cheap live-startup readiness probe.  Do not copy the 1600-bar
+@@ -2702,7 +2717,7 @@
+       // v8.162: pure State-WATCH + M3-ACCEL validation mode.
+       // M3 AUTO positions are intentionally not given a second SL/Peak80 exit
+       // authority; signal-order performance must be measurable by itself.
+-      if(!M3AutoEngineIsActive())
++      if(InpTurnTradeEnabled || !M3AutoEngineIsActive())
+          EnsureManagedStopsProtected(false);
+    }
+ 
+@@ -2734,6 +2749,50 @@
+       g_perf_last_assist_write_us=perf_assist_write_elapsed_us;
+       if(perf_assist_write_elapsed_us>g_perf_peak_assist_write_us)
+          g_perf_peak_assist_write_us=perf_assist_write_elapsed_us;
++   }
++
++   // v8.290: reuse cached M3 observations without invoking legacy order routers.
++   if(InpTurnTradeEnabled)
++   {
++      if(assist_state_updated && M3AutoEngineIsActive() &&
++         g_market_snapshot.valid && g_market_snapshot_tf==AUTO_TF &&
++         g_market_snapshot.closed_bar_time==g_assist_state.bar_time &&
++         g_market_snapshot.loaded_count>=10 && g_market_snapshot.common_loaded_count>=10 &&
++         g_market_snapshot.assist_loaded_count>=10)
++      {
++         JTC_M3_STATE turn_obs;
++         if(M3BuildStateAtIndex(1,turn_obs))
++         {
++            JTC_M3_MACD_STRUCTURE turn_macd; M3AnalyzeMACD(turn_obs,turn_macd);
++            JTC_M3_MA22_STRUCTURE turn_ma; M3AnalyzeMA22(turn_obs,turn_ma);
++            g_m3_eval_index=1;
++            M3SegmentUpdate(turn_obs,turn_macd,turn_ma,1);
++            StructureEpisodeCaptureM3Frame();
++         }
++      }
++      JTC_TurnOrderProcessTick();
++      // Preserve the lightweight one-row-per-completed-M3-bar CSV identity.
++      if(assist_state_updated && g_assist_state.bar_time>0)
++         DataExportWriteUnifiedEvent("BAR","M3_CANONICAL",0,0,
++            g_assist_state.close_price,g_assist_state.source_volume,0,"OBSERVE",
++            "M3_LIGHTWEIGHT_TURN_CANONICAL_AUDIT","",
++            g_assist_state.macd_base,g_assist_state.raw_delta,
++            "TF=M3 ORDER_MODE=TURN_PRE_DIRECTION_ADD",g_assist_state.bar_time);
++      if(has_tick)
++      {
++         if(g_jro_market.auto_new_bar)
++         {
++            WritePerformanceAuditV100(g_jro_market.auto_bar_time,AUTO_TF);
++            g_last_auto_bar_time=g_jro_market.auto_bar_time;
++         }
++         if(g_jro_market.signal_new_bar)
++            g_last_bar_time=g_jro_market.signal_bar_time;
++      }
++      UpdateChartComment();
++      const ulong turn_elapsed_us=GetMicrosecondCount()-tick_started_us;
++      g_perf_last_tick_us=turn_elapsed_us;
++      if(turn_elapsed_us>g_perf_peak_tick_us) g_perf_peak_tick_us=turn_elapsed_us;
++      return;
+    }
+ 
+    if(!InpSystemEnabled)
+--- v8.289/CommonTypes.mqh
++++ v8.290/CommonTypes.mqh
+@@ -15,7 +15,7 @@
+ #define JTC_MACD_WAVE_BUFFER               6
+ #define JTC_MACD_BASE_BUFFER               7
+ 
+-#define JTC_EA_VERSION "8.289"
++#define JTC_EA_VERSION "8.290"
+ 
+ // v8.65 M3 unified market/position lifecycle ownership.
+ enum JTC_M3_MARKET_REGIME
+@@ -1055,6 +1055,29 @@
+    int early_candidate_end_side;
+    int early_candidate_end_age_bars;
+    bool early_candidate_started_pulse;
++   bool turn_pre_enabled;
++   bool turn_pre_data_valid;
++   bool turn_pre_signal;
++   int turn_pre_side;
++   datetime turn_pre_confirm_bar;
++   datetime turn_pre_available_time;
++   datetime turn_pre_pivot_time;
++   double turn_pre_pivot_price;
++   int turn_pre_score;
++   double turn_pre_distance_r;
++   double turn_pre_long_divergence_r;
++   double turn_pre_short_divergence_r;
++   bool turn_pre_opposite;
++   string turn_pre_reason;
++   bool turn_pre_require_divergence;
++   double turn_pre_atr14;
++   bool turn_direction_valid;
++   bool turn_direction_signal;
++   int turn_direction_side;
++   datetime turn_direction_bar;
++   int turn_direction_owner_side;
++   string turn_direction_reason;
++
+    bool watch_pulse;
+    // v8.276/v8.280: same-direction informational WATCH pulse. It remains in
+    // CSV diagnostics but v8.280 suppresses pure repeats from chart/system alert.
+--- v8.289/DataExportEngine.mqh
++++ v8.290/DataExportEngine.mqh
+@@ -82,7 +82,7 @@
+ {
+    // v8.266: +4 canonical WATCH suppression-lifecycle diagnostics on top of v8.264.
+    // Header/row/schema guard remain synchronized.
+-   return 610;
++   return 632;
+ }
+ 
+ 
+@@ -507,7 +507,7 @@
+ 
+ string DataExportProgramName(){ return "Joon Trade Compass"; }
+ string DataExportEaVersion(){ return JTC_EA_VERSION; }
+-string DataExportCsvSchemaVersion(){ return "8.289-INTEGRATED"; }
++string DataExportCsvSchemaVersion(){ return "8.290-LIGHTWEIGHT-TURN-ADD"; }
+ string DataExportStrategyNameValue(const ENUM_STRATEGY_MODE mode)
+ {
+    if(mode==STRATEGY_TREND) return "TREND";
+@@ -2689,6 +2689,28 @@
+       DataExportCsvAdd(header, "early_candidate_end_reason");
+       DataExportCsvAdd(header, "early_candidate_end_side");
+       DataExportCsvAdd(header, "early_candidate_end_age_bars");
++      DataExportCsvAdd(header, "turn_pre_enabled");
++      DataExportCsvAdd(header, "turn_pre_data_valid");
++      DataExportCsvAdd(header, "turn_pre_signal");
++      DataExportCsvAdd(header, "turn_pre_side");
++      DataExportCsvAdd(header, "turn_pre_confirm_bar");
++      DataExportCsvAdd(header, "turn_pre_available_time");
++      DataExportCsvAdd(header, "turn_pre_pivot_time");
++      DataExportCsvAdd(header, "turn_pre_pivot_price");
++      DataExportCsvAdd(header, "turn_pre_score");
++      DataExportCsvAdd(header, "turn_pre_distance_r");
++      DataExportCsvAdd(header, "turn_pre_long_divergence_r");
++      DataExportCsvAdd(header, "turn_pre_short_divergence_r");
++      DataExportCsvAdd(header, "turn_pre_opposite");
++      DataExportCsvAdd(header, "turn_pre_reason");
++      DataExportCsvAdd(header, "turn_pre_require_divergence");
++      DataExportCsvAdd(header, "turn_pre_atr14");
++      DataExportCsvAdd(header, "turn_direction_valid");
++      DataExportCsvAdd(header, "turn_direction_signal");
++      DataExportCsvAdd(header, "turn_direction_side");
++      DataExportCsvAdd(header, "turn_direction_bar");
++      DataExportCsvAdd(header, "turn_direction_owner_side");
++      DataExportCsvAdd(header, "turn_direction_reason");
+       DataExportCsvAdd(header, "assist_raw_delta");
+       DataExportCsvAdd(header, "assist_ema_delta");
+       DataExportCsvAdd(header, "assist_delta_change");
+@@ -3595,6 +3617,28 @@
+    DataExportCsvAdd(row, g_assist_state.early_candidate_end_reason);
+    DataExportCsvAdd(row, g_assist_state.early_candidate_end_side>0 ? "LONG" : g_assist_state.early_candidate_end_side<0 ? "SHORT" : "NONE");
+    DataExportCsvAdd(row, IntegerToString(g_assist_state.early_candidate_end_age_bars));
++   DataExportCsvAdd(row, g_assist_state.turn_pre_enabled ? "YES" : "NO");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_data_valid ? "YES" : "NO");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_signal ? "YES" : "NO");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_side>0 ? "LONG" : g_assist_state.turn_pre_side<0 ? "SHORT" : "NONE");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_confirm_bar>0 ? TimeToString(g_assist_state.turn_pre_confirm_bar,TIME_DATE|TIME_SECONDS) : "");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_available_time>0 ? TimeToString(g_assist_state.turn_pre_available_time,TIME_DATE|TIME_SECONDS) : "");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_pivot_time>0 ? TimeToString(g_assist_state.turn_pre_pivot_time,TIME_DATE|TIME_SECONDS) : "");
++   DataExportCsvAdd(row, DoubleToString(g_assist_state.turn_pre_pivot_price,8));
++   DataExportCsvAdd(row, IntegerToString(g_assist_state.turn_pre_score));
++   DataExportCsvAdd(row, DoubleToString(g_assist_state.turn_pre_distance_r,8));
++   DataExportCsvAdd(row, DoubleToString(g_assist_state.turn_pre_long_divergence_r,8));
++   DataExportCsvAdd(row, DoubleToString(g_assist_state.turn_pre_short_divergence_r,8));
++   DataExportCsvAdd(row, g_assist_state.turn_pre_opposite ? "YES" : "NO");
++   DataExportCsvAdd(row, g_assist_state.turn_pre_reason);
++   DataExportCsvAdd(row, g_assist_state.turn_pre_require_divergence ? "YES" : "NO");
++   DataExportCsvAdd(row, DoubleToString(g_assist_state.turn_pre_atr14,8));
++   DataExportCsvAdd(row, g_assist_state.turn_direction_valid ? "YES" : "NO");
++   DataExportCsvAdd(row, g_assist_state.turn_direction_signal ? "YES" : "NO");
++   DataExportCsvAdd(row, (string)g_assist_state.turn_direction_side);
++   DataExportCsvAdd(row, g_assist_state.turn_direction_bar>0 ? TimeToString(g_assist_state.turn_direction_bar,TIME_DATE|TIME_SECONDS) : "");
++   DataExportCsvAdd(row, (string)g_assist_state.turn_direction_owner_side);
++   DataExportCsvAdd(row, g_assist_state.turn_direction_reason);
+    DataExportCsvAdd(row, DoubleToString(g_assist_state.raw_delta,8));
+    DataExportCsvAdd(row, DoubleToString(g_assist_state.ema_delta,8));
+    DataExportCsvAdd(row, DoubleToString(g_assist_state.delta_change,8));
+--- v8.289/Inputs.mqh
++++ v8.290/Inputs.mqh
+@@ -4,6 +4,22 @@
+ //+------------------------------------------------------------------+
+ #ifndef __JOON_INPUTS_MQH__
+ #define __JOON_INPUTS_MQH__
++
++input group "M3 Low High Turn Pre-Signal (v8.290)"
++input bool InpTurnTradeEnabled = true;       // exclusive new-signal orders; false restores legacy mode
++input bool InpTurnReverseOnOpposite = true;  // close opposite position; reopen only after all exit deals
++input bool InpTurnAddOnPre = true;           // same-side new PRE can add
++input bool InpTurnAddOnDirection = true;     // same-side OFF->ON DIRECTION can add
++input bool InpTurnPreEnabled = true;         // shared chart/CSV/order signal
++input bool InpTurnRequireDivergence = true;
++input int InpTurnLeftBars = 6;               // 2..12 prior bars, pivot uses one right closed bar
++input double InpTurnMinReboundATR = 0.15;
++input double InpTurnMaxDistanceATR = 1.25;
++input double InpTurnMomentumDeadzoneATR = 0.01;
++input int InpTurnSameSideCooldownBars = 3;
++input bool InpTurnShowChart = true;
++input bool InpTurnShowPivotAnchors = true;    // pivot dot appears ONLY after next bar closes
++input int InpTurnChartHistoryBars = 2000;
+ 
+ input group "RANGE Profit Lock (Top)"
+ input double InpRangeProfitLockStartR = 0.80;      // Start trailing profit lock after this Peak R
+--- v8.289/Joon_Trade_Compass_v8_289.mq5
++++ v8.290/Joon_Trade_Compass_v8_290.mq5
+@@ -3,7 +3,7 @@
+ //| v8.139 M3 compile cleanup                 |
+ //+------------------------------------------------------------------+
+ #property strict
+-#property version   "8.289"
++#property version   "8.290"
+ 
+ // Shared types, inputs, state and cross-module interfaces only.
+ #property tester_indicator "Market\\Joon_delta_volume_v1_01_OPT_VALIDATION.ex5"
+@@ -24,6 +24,8 @@
+ #include "EntryEngine.mqh"
+ #include "PositionManager.mqh"
+ #include "HoldEngine.mqh"
++#include "TurnSignalEngine.mqh"
++#include "TurnDirectionEngine.mqh"
+ #include "StateEvaluationEngine.mqh"
+ #include "RiskEngine.mqh"
+ #include "UI.mqh"
+@@ -32,6 +34,7 @@
+ #include "WatchEpisodeEngine.mqh"
+ #include "DataExportEngine.mqh"
+ #include "M3AutoEngine.mqh"
++#include "TurnOrderEngine.mqh"
+ 
+ // MT5 event handlers are owned only by Runtime.mqh.
+ #include "Runtime.mqh"

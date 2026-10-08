@@ -1,0 +1,20 @@
+{
+  "bars": 14639,
+  "direction_candidates": 308,
+  "long": 184,
+  "short": 124,
+  "actual_core_and_adapter_vs_reference_match": true,
+  "forming_mutation_all_bars": true,
+  "csv_columns": 632,
+  "csv_new_direction_fields": [
+    "valid",
+    "signal",
+    "side",
+    "bar",
+    "owner_side",
+    "reason"
+  ],
+  "MT5_compile": "NOT_RUN",
+  "MT5_backtest": "NOT_RUN",
+  "candidates_are_not_executed_ADD_orders": true
+}

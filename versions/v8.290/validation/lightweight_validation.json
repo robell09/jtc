@@ -1,0 +1,11 @@
+{
+  "EA_version": "8.290",
+  "CSV_schema": "8.290-LIGHTWEIGHT-TURN-ADD",
+  "live_and_tester_filename_actual_function_tests": "PASS",
+  "csv_columns": 632,
+  "closed_bar_canonical_export_retained_in_turn_mode": true,
+  "new_signal_functions_reuse_cached_arrays": true,
+  "whole_MT5_compile": "NOT_RUN",
+  "MT5_strategy_test": "NOT_RUN",
+  "MT5_performance_benchmark": "NOT_RUN"
+}
