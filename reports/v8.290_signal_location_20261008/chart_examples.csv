@@ -1,0 +1,5 @@
+case,pivot_index,confirm_index,pivot_time,side
+Confirmed LOW example,10362,10363.0,2026.07.31 17:06:00,1
+Failed HIGH example,4834,4835.0,2026.07.15 16:42:00,-1
+Confirmed but far from pivot,10823,10824.0,2026.08.03 17:09:00,1
+Missed retrospective LOW (future label),7073,,2026.07.22 13:39:00,1

@@ -1,0 +1,10 @@
+{
+  "baseline_core_exact_match": true,
+  "prefix_invariance_checks": 24,
+  "cutoffs": [
+    1000,
+    5000,
+    10000
+  ],
+  "status": "passed"
+}

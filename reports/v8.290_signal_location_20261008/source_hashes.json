@@ -1,0 +1,15 @@
+{
+  "Joon_MACD_v2_05_OPT_VALIDATION.mq5": "7249f3f15505985d1cd89a826fc668f94c660e1682f424669bd155679d4205ec",
+  "Joon_delta_volume_v1_01_OPT_VALIDATION.mq5": "ec17657a51c1b5a15b164a7281fbd6894e213c008397718901cc7dbb8623217b",
+  "v8.282_StateEvaluationEngine.mqh": "fc2cd23fb2ad83a6ae82dffa5f1b60498e58e8835af9947680f37c53c2a5ab13",
+  "v8.282_StructureEpisodeEngine.mqh": "67387cd43813740991ec7a5e52b606789a37298b64b1b115caee87039e065e5b",
+  "v8.289_StateEvaluationEngine.mqh": "f628217b6279a8cf6fa57a9c96dab14fe4d586b7b97487487c972e7390006863",
+  "v8.289_StructureEpisodeEngine.mqh": "67387cd43813740991ec7a5e52b606789a37298b64b1b115caee87039e065e5b",
+  "v8.290_Inputs.mqh": "8b460bbd5fbfbafac9e219affc9be17d7501312549c3bdec0e01d6b72c71aef2",
+  "v8.290_PositionManager.mqh": "4fb9d7a3a13229f5434d2a2dac547a73c23c40cd8351d7b169535c700a07f4fd",
+  "v8.290_RiskEngine.mqh": "fd2ee24d3baf4be81235159b8956e4dd6348ccaf257be5de644f934ba98f0a86",
+  "v8.290_TurnCore.mqh": "ebcc097fca981bda0b4025c700fcf1563b983fb4b62fff7aaceea3ddcadef74d",
+  "v8.290_TurnDirectionCore.mqh": "5a2b6f0c3bb2f69589eae2078dd654aaef23aff284cc9f01afceee7e26c45339",
+  "v8.290_TurnOrderEngine.mqh": "63622df2eee50940bbb80e0e62e8df32c096ba5f98a737c7a4f6b5ef3ddd9b95",
+  "v8.290_TurnSignalEngine.mqh": "70582f56f1551bb989c43f7d7fb2c5a7d57d700f8ba342a00bba04ca0d4cf50d"
+}

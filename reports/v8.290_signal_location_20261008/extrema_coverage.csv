@@ -1,0 +1,9 @@
+variant,reference_extrema,exact_pivot_matches,coverage_pct
+acceleration,1532,55,3.59
+current,1532,45,2.94
+current_shape,1532,39,2.55
+no_divergence,1532,106,6.92
+raw_delta_only,1532,46,3.0
+two_of_three,1532,61,3.98
+window3_raw_shape,1532,177,11.55
+window3_strict,1532,58,3.79
