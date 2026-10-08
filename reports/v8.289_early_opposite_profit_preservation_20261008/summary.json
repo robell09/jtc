@@ -1,0 +1,13 @@
+{
+  "completed_cycles": 349,
+  "baseline_net": 8028.97,
+  "actual_positions_closed": 1128,
+  "last_unconfirmed_cycle_excluded": 1,
+  "diagnostic_pulses": 754,
+  "observations": 12178,
+  "source_peak_nonzero_bars": 0,
+  "source_lock_applied_bars": 0,
+  "positive_peak_cycles": 288,
+  "top5_original_net": 6256.74,
+  "variants": 33
+}

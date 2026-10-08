@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "checks": [
+    "all 1128 actual position PnLs match fee and swap model",
+    "baseline and all 33 overlay ledgers reconcile exactly across 349 completed cycles",
+    "36 as-of portfolio checks ignore unknown future entries, exits and final PnL",
+    "counter-direction predicates for both held sides are invariant to a 700-bar prefix cutoff"
+  ]
+}

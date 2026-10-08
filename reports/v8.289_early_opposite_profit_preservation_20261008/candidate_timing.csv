@@ -1,0 +1,7 @@
+candidate,first_candidate_cycles,profitable_at_first,first_exit_improves_cycles,first_exit_worsens_cycles,median_lead_to_final_minutes,median_peak_retention_at_first
+shadow,210,71,161,48,57.0,-0.38541060247238457
+momentum,337,66,266,71,57.0,-0.8096890552942788
+persistent,288,86,222,66,57.608333333333334,-0.54354736172918
+swing,205,85,152,53,69.0,-0.029697079520401074
+shadow_break3,187,70,140,47,48.0,-0.278397838117978
+persistent_break3,271,78,206,65,54.0,-0.6584892948431128

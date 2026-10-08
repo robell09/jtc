@@ -1,0 +1,12 @@
+{
+  "scope": "all mq5/mqh files in uploaded v8.289 base, comments excluded",
+  "wrapper_occurrences": [
+    {
+      "file": "M3AutoEngine.mqh",
+      "line": 541,
+      "text": "bool M3AutoManageProfitProtectionTick()"
+    }
+  ],
+  "direct_callers": 0,
+  "finding": "wrapper has definition but no execution caller"
+}
