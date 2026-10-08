@@ -1,0 +1,21 @@
+{
+  "tests_passed": 13,
+  "cases": [
+    "closed-bar causal next-open entry",
+    "entry uses already-observed spread, not future closing spread",
+    "PRE priority and shared MAX ADD",
+    "DIRECTION never opens a flat position",
+    "opposite PRE close and reversal ordering",
+    "gap stop fills at adverse open, not optimistic stop",
+    "short stops use Ask high",
+    "ADD shared protection tightens all layers and never widens",
+    "total lot cap",
+    "MAX ADD zero",
+    "server rollover, Wednesday triple, weekend swap",
+    "all scenarios: fills/cycles/PnL/equity/caps/causal index invariants",
+    "original fills and closed PnL exact calibration"
+  ],
+  "scenarios_checked": 39,
+  "M3_OHLC_model_only": true,
+  "MT5_compile_or_real_tick_replay": "NOT_RUN"
+}

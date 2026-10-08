@@ -1,0 +1,15 @@
+{
+  "bars": 14639,
+  "PRE": 74,
+  "DIRECTION": 308,
+  "MQL_core_replayed": true,
+  "version": "8.290",
+  "hashes": {
+    "PositionManager.mqh": "4fb9d7a3a13229f5434d2a2dac547a73c23c40cd8351d7b169535c700a07f4fd",
+    "TurnOrderEngine.mqh": "63622df2eee50940bbb80e0e62e8df32c096ba5f98a737c7a4f6b5ef3ddd9b95",
+    "Inputs.mqh": "8b460bbd5fbfbafac9e219affc9be17d7501312549c3bdec0e01d6b72c71aef2",
+    "TurnDirectionCore.mqh": "5a2b6f0c3bb2f69589eae2078dd654aaef23aff284cc9f01afceee7e26c45339",
+    "TurnCore.mqh": "ebcc097fca981bda0b4025c700fcf1563b983fb4b62fff7aaceea3ddcadef74d",
+    "RiskEngine.mqh": "fd2ee24d3baf4be81235159b8956e4dd6348ccaf257be5de644f934ba98f0a86"
+  }
+}
